@@ -12,9 +12,9 @@ output: ioslides_presentation
 
 
 ## Literate programming
-[traditional code](code.bad.txt)
+[traditional code](https://raw.githubusercontent.com/coleoguy/markdown/master/code.bad.txt)
 
-[literate code](code.good.txt)
+[literate code](https://raw.githubusercontent.com/coleoguy/markdown/master/code.good.txt)
 
 [literate code -> html ](http://coleoguy.github.io/comparative/comparative.html)
 
