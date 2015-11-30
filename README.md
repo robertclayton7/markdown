@@ -17,7 +17,7 @@ install.packages("knitr")
 
 ## Documents
 
-[html slides](hb.pres.html)
+[html slides](http://coleoguy.github.io/blackmon.pubs/hb.pres.html)
 
 [cheat sheets](handout.pdf)
 
