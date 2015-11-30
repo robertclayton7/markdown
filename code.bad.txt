@@ -1,0 +1,164 @@
+CalcD <- function(alignment = "alignment.fasta", 
+                  sig.test="N",                                        
+                  block.size = 1000,                                   
+                  replicate=1000){
+  # this function is used regardless of approach
+  d.calc <- function(alignment){
+    abba <- 0                                                          
+    baba <- 0                                                          
+    for(i in 1:ncol(alignment)){                                       
+      if(length(unique(alignment[, i])) == 2){                         
+        if(alignment[1, i] != alignment[2, i]){                        
+          if(alignment[4, i] != alignment[3, i]){                      
+            if(alignment[3, i] == alignment[1, i]) {baba <- baba + 1}  
+            if(alignment[2, i] == alignment[3, i]) {abba <- abba + 1}  
+          } 
+        }
+      }
+    }
+    d <- (abba - baba) / (abba + baba)   #what its all about
+    results <- list()
+    results[[1]] <- d
+    results[[2]] <- abba
+    results[[3]] <- baba
+    return(results)
+  }
+  alignment <- read.alignment(alignment, format = "fasta")                        
+  alignment.matrix <- matrix(, length(alignment$nam), nchar(alignment$seq[[1]]))  
+  for(i in 1:length(alignment$nam)){
+    alignment.matrix[i, ] <- unlist(strsplit(alignment$seq[[i]], ""))             
+  }
+  results <- d.calc(alignment.matrix)
+  d <- results[[1]]
+  if(is.nan(d)) d <- 0
+  abba <- results[[2]]
+  baba <- results[[3]]
+  if(sig.test=="B"){
+    sim.d<-vector()
+    foo <- ncol(alignment.matrix)
+    sim.matrix<-matrix(,4,foo)
+    cat("\nperforming bootstrap")
+    for(k in 1:replicate){
+      if(k/(replicate/100) == round(k/(replicate/100))) cat(".")
+      sim.matrix[1:4,1:foo] <- alignment.matrix[1:4, sample(1:foo, replace=T)]
+      results <- d.calc(sim.matrix)
+      sim.d[k] <- results[[1]]
+    }
+    sim.d[is.nan(sim.d)] <- 0
+    z <- abs(d/sd(sim.d))
+    new.pval <- 2 * (1 - pnorm(z))
+    cat("\nSites in alignment =", ncol(alignment.matrix))
+    cat("\nNumber of sites with ABBA pattern =", abba)
+    cat("\nNumber of sites with BABA pattern =", baba)
+    cat("\n\nD raw statistic / Z-score = ", d, " / ", z)
+    cat("\n\nResults from ", replicate, "bootstraps")
+    cat("\nSD D statistic =", sd(sim.d))
+    cat("\nP-value (that D=0) = ",new.pval) 
+  }
+  if(sig.test=="J"){
+    max.rep <- ncol(alignment.matrix) - block.size
+    if(block.size >= (ncol(alignment.matrix)/2)){
+      stop(call. = F, paste("\nWith a block size of", block.size, 
+                            "and an alignment of", ncol(alignment.matrix), 
+                            "sites \nsome sites would never be included in the \nanalysis",
+                            "\n\nThe maximum block size is 1/2 the alignment length"))
+    }
+    if(max.rep < replicate){
+      stop(call. = F, paste("\nWith a block size of", block.size, 
+                            "and an alignment of", ncol(alignment.matrix), 
+                            "sites", replicate, "replicates\nare not possible"))
+    }
+    
+    
+    if(max.rep >= replicate){
+      drop.pos <- seq.int(from=1, to=(max.rep-1), length.out=replicate)
+      replicate2 <- replicate
+    }
+    sim.d<-vector()
+    foo <- ncol(alignment.matrix)
+    sim.matrix<-matrix(,4,foo-block.size)
+    cat("\nperforming jackknife")
+    for(k in 1:replicate2){  
+      if(k/2 == round(k/2)) cat(".")
+      sim.matrix[1:4,1:(foo-block.size-1)] <-alignment.matrix[1:4, -drop.pos[k]:-(drop.pos[k]+block.size)]
+      results <- d.calc(sim.matrix)
+      sim.d[k] <- results[[1]]
+    }
+    sim.d[is.nan(sim.d)] <- 0
+    z <- abs(d/sd(sim.d))
+    new.pval <- 2 * (1 - pnorm(z))
+    ## NOW WE MAKE THE OUTPUTS  
+    cat("\nSites in alignment =", ncol(alignment.matrix))
+    cat("\nNumber of sites with ABBA pattern =", abba)
+    cat("\nNumber of sites with BABA pattern =", baba)
+    cat("\nD raw statistic", d)
+    cat("\nZ-score = ", z)
+    cat("\n\nResults from", replicate2, "jackknifes with block size of", block.size)
+    cat("\nSD D statistic =", sd(sim.d))
+    cat("\nP-value (that D=0) = ",new.pval) #after Eaton and Ree 2013 
+  }
+  if(sig.test=="N"){
+    cat("\nSites in alignment =", ncol(alignment.matrix))
+    cat("\nNumber of sites with ABBA pattern =", abba)
+    cat("\nNumber of sites with BABA pattern =", baba)
+    cat("\n\nD raw statistic = ", d)
+  }
+}
+CalcPopD <- function(alignment = "alignment.fasta"){
+  Mode <- function(x) {                                                                      
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x, ux)))]
+  }  
+  alignment<-read.alignment(alignment, format="fasta")                                       
+  alignment.matrix<-matrix(,length(alignment$nam),nchar(alignment$seq[[1]])+1)               
+  for(i in 1:length(alignment$nam)){
+    alignment.matrix[i,2:ncol(alignment.matrix)]<-unlist(strsplit(alignment$seq[[i]],""))    
+  }
+  alignment.matrix[,1]<-alignment$nam                                                        
+  groups<-unique(alignment$nam)
+  p1 <- p2 <- p3 <- p4 <- 0                                                                  
+  numerator <- denominator <- 0
+  useful<-0                                                                                  
+  segregating<-0                                                                             
+  seg.pos<-F                                                                                 
+  for(i in 2:ncol(alignment.matrix)){                                                        
+    seg.pos<-F                                                                               
+    if(length(unique(alignment.matrix[,i]))==2){                                             
+      A <- Mode(alignment.matrix[alignment.matrix[, 1] == groups[4], i])                     
+      B <- unique(alignment.matrix[,i])[unique(alignment.matrix[, i]) != A]                  
+      if(B %in% unique(alignment.matrix[alignment.matrix[, 1] == groups[3], i])){            
+        if(length(unique(alignment.matrix[alignment.matrix[, 1] %in% groups[1:2], i])) == 2){  
+          useful <- useful + 1                                                                 
+          if(length(unique(alignment.matrix[alignment.matrix[, 1] == groups[1], i])) == 2) {seg.pos<-T}
+          if(length(unique(alignment.matrix[alignment.matrix[, 1] == groups[2], i])) == 2) {seg.pos<-T}
+          if(length(unique(alignment.matrix[alignment.matrix[, 1] == groups[3], i])) == 2) {seg.pos<-T}
+          if(length(unique(alignment.matrix[alignment.matrix[, 1] == groups[4], i])) == 2) {seg.pos<-T}
+          if(seg.pos == T){segregating <- segregating + 1} 
+          #print(segregating)
+          p1 <- (sum(alignment.matrix[alignment.matrix[, 1] == groups[1], i] == A))/length(alignment.matrix[alignment.matrix[, 1] == groups[1], i])  
+          p2 <- (sum(alignment.matrix[alignment.matrix[, 1] == groups[2], i] == A))/length(alignment.matrix[alignment.matrix[, 1] == groups[2], i])  
+          p3 <- (sum(alignment.matrix[alignment.matrix[, 1] == groups[3], i] == A))/length(alignment.matrix[alignment.matrix[, 1] == groups[3], i])  
+          p4 <- (sum(alignment.matrix[alignment.matrix[, 1] == groups[4], i] == A))/length(alignment.matrix[alignment.matrix[, 1] == groups[4], i])  
+          p1 <- 1-p1 
+          p2 <- 1-p2 
+          p3 <- 1-p3 
+          p4 <- 1-p4 
+          numerator <- ((1 - p1) * p2 * p3 * (1 - p4)) - (p1 * (1 - p2) * p3 * (1 - p4)) + numerator       
+          denominator <- ((1 - p1) * p2 * p3 * (1 - p4)) + (p1 * (1 - p2) * p3 * (1 - p4)) + denominator   
+        }
+      }
+    }
+  }
+  d <- numerator / denominator   
+  
+  user.result <- list()
+  user.result$d.stat <- d
+  user.result$pval <- "HELP"
+  user.result$align.length <- ncol(alignment.matrix) - 1
+  user.result$useful.sites <- useful
+  user.result$seg.sites <- segregating
+  print(paste("Sites in alignment =", ncol(alignment.matrix) - 1))
+  print(paste("Number of sites with ABBA or BABA patterns =", useful))
+  print(paste("Number of ABBA or BABA sites that are still segregating in at least one population =", segregating))  
+  print(paste("D statistic =", d))
+}
