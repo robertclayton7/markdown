@@ -8,6 +8,13 @@ Literate programming is an approach to writing code where we combine plain text 
 Markdown is a language developed to allow users to write largely in plain text which can be converted to properly formatted html.  Many flavors of markdown have been developed each of which has its own nuances.  Becuase you are all using R already we will focus on using R markdown in Rstudio.
 [R markdown website](http://rmarkdown.rstudio.com/).
 
+We will use the package knitr to facilitate processing of our markdown files:
+
+```{r}
+install.packages("knitr")
+```
+
+
 ## Documents
 
 [html slides](hb.pres.html)
