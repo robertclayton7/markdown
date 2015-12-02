@@ -34,6 +34,7 @@ output: ioslides_presentation
  >- header
  >- text
  >- code blocks
+ >- sections with #, ##, ###
 
 
 ## Challenge 1

@@ -1,5 +1,5 @@
 ---
-title: "Example"
+title: "Challenge 2 Slideshow"
 author: "Heath Blackmon"
 date: "last compiled: `r Sys.Date()`"
 output: ioslides_presentation
