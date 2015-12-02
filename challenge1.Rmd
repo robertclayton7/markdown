@@ -2,8 +2,7 @@
 title: "Example"
 author: "Heath Blackmon"
 date: "last compiled: `r Sys.Date()`"
-output: 
-  ioslides_presentation
+output: html_document
 ---
 
 ## Loading data

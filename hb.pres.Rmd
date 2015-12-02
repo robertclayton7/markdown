@@ -26,6 +26,8 @@ output: ioslides_presentation
   >- *increasingly wide usage*
   >- *plain text*
   >- *using knitr gives simple and effective products: [pdf](http://coleoguy.github.io/saga.pdf), html, slideshows*
+  >- library("knitr")
+  >- install.packages("knitr")
   >- File -> New File -> R Markdown -> html -> OK 
   
 ## Parts of a Rmarkdown document
@@ -51,7 +53,7 @@ output: ioslides_presentation
  
 ## Challenge 2
  >- Save a second copy of your markdown file and change it into a slideshow
- >- 1. change output argument in header
+ >- 1. output: ioslides_presentation
     2. use the `echo = F` argument in your code blocks
     3. delete the pdf saves
 
